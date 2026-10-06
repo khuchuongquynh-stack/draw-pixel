@@ -1,0 +1,938 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Pixel Art Mosaic – Đa kích thước</title>
+<style>
+  *{ box-sizing:border-box; }
+  html,body{
+    margin:0; padding:0;
+    width:100%; height:100%;
+    overflow:hidden;
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    background:#eef2f8;
+    color:#1f2937;
+  }
+  .app{
+    width:100vw; height:100vh;
+    display:flex;
+    background:#ffffff;
+  }
+
+  .panel{
+    width:270px; flex-shrink:0;
+    height:100%;
+    padding:18px 16px;
+    display:flex; flex-direction:column; gap:14px;
+    background:#f8fafc;
+    border-right:1px solid #e2e8f0;
+    overflow-y:auto;
+  }
+  .panel::-webkit-scrollbar{ width:6px; }
+  .panel::-webkit-scrollbar-thumb{ background:#cbd5e1; border-radius:3px; }
+
+  h1{
+    font-size:13px; margin:0;
+    letter-spacing:1px; text-transform:uppercase;
+    color:#475569; font-weight:800;
+    display:flex; align-items:center; gap:6px;
+  }
+  .section{ display:flex; flex-direction:column; gap:8px; }
+  .label{
+    font-size:10px; text-transform:uppercase;
+    letter-spacing:.8px; color:#64748b; font-weight:700;
+  }
+
+  button{
+    font:inherit; color:#1f2937; background:#ffffff;
+    border:1px solid #cbd5e1; border-radius:10px;
+    padding:8px 10px; cursor:pointer; transition:.15s;
+    display:flex; align-items:center; justify-content:center; gap:6px;
+  }
+  button:hover{ background:#f1f5f9; border-color:#94a3b8; }
+  button:active{ transform:translateY(1px); }
+  button.active{ background:#111827; border-color:#111827; color:#fff; font-weight:700; }
+
+  .tools{ display:grid; grid-template-columns:repeat(3,1fr); gap:6px; }
+  .tools button{ font-size:17px; padding:10px 0; }
+
+  .color-row{ display:flex; align-items:center; gap:10px; }
+  input[type=color]{
+    width:48px; height:40px; padding:2px; border:1px solid #cbd5e1;
+    border-radius:10px; background:#fff; cursor:pointer;
+  }
+  #colorHex{ font-family:ui-monospace,monospace; font-size:13px; color:#475569; font-weight:600; }
+
+  .palette{ display:grid; grid-template-columns:repeat(6,1fr); gap:6px; }
+  .sw{
+    aspect-ratio:1; border-radius:8px; cursor:pointer;
+    border:2px solid transparent;
+    box-shadow:inset 0 0 0 1px rgba(0,0,0,.08);
+    transition:.12s;
+  }
+  .sw:hover{ transform:scale(1.12); }
+  .sw.sel{ border-color:#111827; transform:scale(1.12); }
+
+  /* ====== BỘ CHỌN KÍCH THƯỚC MỚI ====== */
+  .size-header{
+    display:flex; align-items:center; gap:8px;
+  }
+  .size-header .label{ flex:1; }
+  #sizeValue{
+    font-family:ui-monospace,monospace;
+    font-size:13px; font-weight:800;
+    color:#2563eb;
+    background:#eff6ff;
+    padding:2px 8px; border-radius:6px;
+    border:1px solid #bfdbfe;
+  }
+
+  /* Ô nhập số */
+  .size-input-row{
+    display:flex; align-items:center; gap:6px;
+  }
+  #sizeInput{
+    flex:1;
+    font:inherit;
+    font-family:ui-monospace,monospace;
+    font-weight:700;
+    text-align:center;
+    padding:8px 10px;
+    border:1px solid #cbd5e1;
+    border-radius:10px;
+    background:#fff;
+    color:#111827;
+    outline:none;
+    transition:.15s;
+  }
+  #sizeInput:focus{
+    border-color:#2563eb;
+    box-shadow:0 0 0 3px rgba(37,99,235,.15);
+  }
+  .size-input-row .unit{
+    font-size:12px; color:#94a3b8; font-weight:600;
+  }
+
+  /* Thanh trượt */
+  input[type=range]{
+    -webkit-appearance:none;
+    width:100%;
+    height:6px;
+    border-radius:3px;
+    background:#e2e8f0;
+    outline:none;
+    margin:6px 0;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;
+    width:18px; height:18px;
+    border-radius:50%;
+    background:#2563eb;
+    cursor:pointer;
+    box-shadow:0 2px 6px rgba(37,99,235,.4);
+    border:2px solid #fff;
+  }
+  input[type=range]::-moz-range-thumb{
+    width:18px; height:18px;
+    border-radius:50%;
+    background:#2563eb;
+    cursor:pointer;
+    box-shadow:0 2px 6px rgba(37,99,235,.4);
+    border:2px solid #fff;
+  }
+  .range-labels{
+    display:flex; justify-content:space-between;
+    font-size:10px; color:#94a3b8;
+    font-family:ui-monospace,monospace;
+  }
+
+  /* Dãy preset cuộn ngang */
+  .presets{
+    display:grid;
+    grid-template-columns:repeat(4, 1fr);
+    gap:5px;
+    max-height:160px;
+    overflow-y:auto;
+    padding-right:4px;
+  }
+  .presets::-webkit-scrollbar{ width:5px; }
+  .presets::-webkit-scrollbar-thumb{ background:#cbd5e1; border-radius:3px; }
+
+  .presets button{
+    font-size:12px;
+    padding:7px 0;
+    font-family:ui-monospace,monospace;
+    font-weight:700;
+  }
+
+  .check{
+    display:flex; align-items:center; gap:8px;
+    font-size:13px; color:#475569; cursor:pointer;
+  }
+  .check input{ accent-color:#111827; width:16px; height:16px; cursor:pointer; }
+
+  /* Nút tải ảnh */
+  .upload-btn{
+    background:#2563eb; border-color:#2563eb; color:#fff;
+    font-weight:700; padding:11px 10px;
+  }
+  .upload-btn:hover{ background:#1d4ed8; border-color:#1d4ed8; }
+  .upload-hint{
+    font-size:11px; color:#94a3b8; text-align:center;
+    line-height:1.4;
+  }
+
+  main{
+    flex:1;
+    height:100%;
+    display:flex; flex-direction:column;
+    padding:12px;
+    gap:10px;
+    min-width:0;
+    background:#eef2f8;
+    overflow:hidden;
+  }
+
+  .canvas-wrap{
+    flex:1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    min-height:0;
+    min-width:0;
+    background:#fff;
+    border-radius:14px;
+    border:1px solid #dbe3ee;
+    box-shadow:0 10px 30px rgba(30,58,138,.10);
+    padding:10px;
+    overflow:hidden;
+    position:relative;
+    transition:.2s;
+  }
+  .canvas-wrap.drag-over{
+    border-color:#2563eb;
+    box-shadow:0 0 0 4px rgba(37,99,235,.15), 0 10px 30px rgba(30,58,138,.15);
+    background:#f0f7ff;
+  }
+  .canvas-wrap.drag-over::after{
+    content:"🖼️  Thả ảnh vào đây";
+    position:absolute; inset:0;
+    display:flex; align-items:center; justify-content:center;
+    font-size:18px; font-weight:700; color:#2563eb;
+    background:rgba(240,247,255,.85);
+    pointer-events:none;
+    border-radius:14px;
+  }
+
+  #board{
+    display:block;
+    image-rendering:pixelated;
+    touch-action:none;
+    cursor:crosshair;
+    background:#ffffff;
+    border-radius:4px;
+  }
+
+  .bottom-bar{
+    flex-shrink:0;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+  .actions{ display:flex; gap:8px; flex-wrap:wrap; }
+  .actions button{ font-size:13px; padding:9px 14px; white-space:nowrap; }
+
+  #status{
+    margin-left:auto;
+    font-size:12px; color:#64748b;
+    font-family:ui-monospace,monospace;
+    padding:6px 12px;
+    background:#ffffff;
+    border-radius:8px;
+    border:1px solid #e2e8f0;
+    white-space:nowrap;
+  }
+
+  #toast{
+    position:fixed; left:50%; bottom:28px;
+    transform:translateX(-50%) translateY(20px);
+    background:#111827; color:#fff;
+    padding:10px 18px; border-radius:10px;
+    font-size:13px; font-weight:600;
+    opacity:0; pointer-events:none;
+    transition:.25s;
+    z-index:999;
+    box-shadow:0 10px 30px rgba(0,0,0,.25);
+  }
+  #toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+
+  @media (max-width:820px){
+    .app{ flex-direction:column; }
+    .panel{
+      width:100%; height:auto;
+      flex-direction:row;
+      flex-wrap:wrap;
+      gap:12px;
+      padding:12px;
+      border-right:none;
+      border-bottom:1px solid #e2e8f0;
+      max-height:55vh;
+    }
+    .panel .section{ flex:1 1 200px; }
+    h1{ width:100%; }
+    main{ padding:10px; }
+    #status{ margin-left:0; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <aside class="panel">
+    <h1>🎨 Pixel Art Mosaic</h1>
+
+    <div class="section">
+      <button id="uploadBtn" class="upload-btn">🖼️ Tải ảnh lên</button>
+      <input type="file" id="fileInput" accept="image/*" hidden />
+      <div class="upload-hint">hoặc kéo thả ảnh vào khung vẽ<br>hoặc Ctrl+V để dán</div>
+    </div>
+
+    <div class="section">
+      <div class="label">Công cụ</div>
+      <div class="tools" id="tools">
+        <button data-tool="pen"    class="active" title="Bút (B)">✏️</button>
+        <button data-tool="eraser" title="Tẩy (E)">🧽</button>
+        <button data-tool="bucket" title="Tô màu (G)">🪣</button>
+        <button data-tool="picker" title="Hút màu (I)">💧</button>
+        <button data-tool="line"   title="Đường thẳng (L)">📏</button>
+        <button data-tool="rect"   title="Hình chữ nhật (R)">▭</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="label">Màu vẽ</div>
+      <div class="color-row">
+        <input type="color" id="colorPicker" value="#a47148" />
+        <span id="colorHex">#a47148</span>
+      </div>
+      <div class="palette" id="palette"></div>
+    </div>
+
+    <!-- ====== BỘ CHỌN KÍCH THƯỚC ====== -->
+    <div class="section">
+      <div class="size-header">
+        <div class="label">Số ô mỗi cạnh</div>
+        <span id="sizeValue">32 × 32</span>
+      </div>
+
+      <div class="size-input-row">
+        <input type="number" id="sizeInput" min="4" max="256" step="1" value="32" />
+        <span class="unit">ô</span>
+      </div>
+
+      <input type="range" id="sizeRange" min="4" max="128" step="1" value="32" />
+      <div class="range-labels"><span>4</span><span>128</span></div>
+
+      <div class="label" style="margin-top:2px;">Chọn nhanh</div>
+      <div class="presets" id="presets"></div>
+    </div>
+
+    <div class="section">
+      <label class="check"><input type="checkbox" id="gridToggle" checked /> Hiện viền ô đen</label>
+    </div>
+  </aside>
+
+  <main>
+    <div class="canvas-wrap" id="canvasWrap">
+      <canvas id="board"></canvas>
+    </div>
+    <div class="bottom-bar">
+      <div class="actions">
+        <button id="undoBtn">↶ Undo</button>
+        <button id="redoBtn">↷ Redo</button>
+        <button id="clearBtn">🗑 Xoá hết</button>
+        <button id="downloadBtn">⬇ Tải PNG</button>
+      </div>
+      <div id="status">Sẵn sàng – nhấn giữ chuột để vẽ</div>
+    </div>
+  </main>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* =========================================================
+   PIXEL ART MOSAIC – ĐA KÍCH THƯỚC
+   ========================================================= */
+const canvas    = document.getElementById('board');
+const ctx       = canvas.getContext('2d');
+const wrap      = document.getElementById('canvasWrap');
+const fileInput = document.getElementById('fileInput');
+const toastEl   = document.getElementById('toast');
+const sizeInput = document.getElementById('sizeInput');
+const sizeRange = document.getElementById('sizeRange');
+const sizeValue = document.getElementById('sizeValue');
+const presetsEl = document.getElementById('presets');
+
+/* Giới hạn */
+const SIZE_MIN = 4;
+const SIZE_MAX = 256;
+const RANGE_MAX = 128;  // thanh trượt chỉ tới đây, số lớn hơn nhập tay
+
+/* Danh sách preset phong phú */
+const PRESETS = [
+  4, 6, 8, 10, 12, 16, 20, 24, 32, 40, 48, 56,
+  64, 80, 96, 100, 120, 128, 150, 180, 200, 256
+];
+
+let   N    = 32;
+let   pixels = new Array(N * N).fill(null);
+let   sourceImage = null;
+
+let   color      = '#a47148';
+let   tool       = 'pen';
+let   showGrid   = true;
+let   drawing    = false;
+let   startCell  = null;
+let   lastCell   = null;
+let   snapshot   = null;
+let   history    = [];
+let   future     = [];
+
+/* ---------- Toast ---------- */
+let toastTimer = null;
+function toast(msg){
+  toastEl.textContent = msg;
+  toastEl.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toastEl.classList.remove('show'), 1800);
+}
+
+/* ---------- Đổi kích thước ---------- */
+function setSize(n){
+  n = Math.round(n);
+  if (isNaN(n)) return;
+  n = Math.max(SIZE_MIN, Math.min(SIZE_MAX, n));
+
+  if (n === N) return;
+  N = n;
+
+  // Cập nhật UI
+  sizeInput.value = N;
+  sizeRange.value = Math.min(N, RANGE_MAX);
+  sizeValue.textContent = `${N} × ${N}`;
+  syncPresetButtons();
+
+  history = [];
+  future  = [];
+
+  // Nếu có ảnh nguồn → lấy mẫu lại; nếu không → giữ nét vẽ cũ (scale gần đúng)
+  if (sourceImage){
+    fitCanvas();
+    applySourceImage(false);
+  } else {
+    // Cắt/giữ vùng trung tâm nếu lưới nhỏ đi, hoặc mở rộng viền trắng nếu to ra
+    pixels = resamplePixels(pixels, N);
+    fitCanvas();
+    render();
+  }
+}
+
+/* Resample lưới pixel cũ sang kích thước mới (nearest cho đơn giản) */
+function resamplePixels(oldPixels, newN){
+  const oldN = Math.round(Math.sqrt(oldPixels.length));
+  if (oldN === newN) return oldPixels.slice();
+
+  const out = new Array(newN * newN).fill(null);
+  for (let y = 0; y < newN; y++){
+    for (let x = 0; x < newN; x++){
+      // Ánh xạ ngược về tọa độ lưới cũ, giữ vùng trung tâm
+      const sx = Math.floor((x - (newN - oldN) / 2) * oldN / newN + 0.5);
+      const sy = Math.floor((y - (newN - oldN) / 2) * oldN / newN + 0.5);
+      if (sx >= 0 && sy >= 0 && sx < oldN && sy < oldN){
+        out[y * newN + x] = oldPixels[sy * oldN + sx];
+      }
+    }
+  }
+  return out;
+}
+
+/* ---------- Fit canvas, mỗi ô là số nguyên pixel ---------- */
+function fitCanvas(){
+  const rect = wrap.getBoundingClientRect();
+  const pad  = 20;
+  const avail = Math.max(80, Math.min(rect.width, rect.height) - pad);
+
+  // cellPx là số nguyên; tối thiểu 2px để lưới dày vẫn thấy
+  const cellPx = Math.max(2, Math.floor(avail / N));
+  const size   = cellPx * N;
+
+  canvas.width  = size;
+  canvas.height = size;
+  canvas.style.width  = size + 'px';
+  canvas.style.height = size + 'px';
+
+  render();
+}
+window.addEventListener('resize', fitCanvas);
+
+/* ---------- Render ---------- */
+function render(){
+  const CELL = canvas.width / N;
+
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  for (let y = 0; y < N; y++){
+    const row = y * N;
+    for (let x = 0; x < N; x++){
+      const c = pixels[row + x];
+      if (c){
+        ctx.fillStyle = c;
+        ctx.fillRect(x * CELL, y * CELL, CELL, CELL);
+      }
+    }
+  }
+
+  // Viền đen – chỉ vẽ khi ô đủ lớn (>= 3px) để tránh lưới dày đặc
+  if (showGrid && CELL >= 3){
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 1;
+
+    ctx.beginPath();
+    for (let i = 1; i < N; i++){
+      const p = i * CELL + 0.5;
+      ctx.moveTo(p, 0); ctx.lineTo(p, canvas.height);
+      ctx.moveTo(0, p); ctx.lineTo(canvas.width, p);
+    }
+    ctx.stroke();
+    ctx.strokeRect(0.5, 0.5, canvas.width - 1, canvas.height - 1);
+  }
+}
+
+/* ---------- Tiện ích ---------- */
+function setPx(x, y, c){
+  if (x < 0 || y < 0 || x >= N || y >= N) return;
+  pixels[y * N + x] = c;
+}
+
+function rgbToHex(r, g, b){
+  return '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('');
+}
+
+function pushHistory(){
+  history.push(pixels.slice());
+  if (history.length > 80) history.shift();
+  future.length = 0;
+}
+
+/* =========================================================
+   TẢI ẢNH → PIXEL ART
+   ========================================================= */
+function loadImageFromFile(file){
+  if (!file || !file.type.startsWith('image/')){
+    toast('❌ File không phải ảnh');
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = new Image();
+    img.onload = () => {
+      sourceImage = img;
+      pushHistory();
+      applySourceImage(true);
+      toast(`✅ Đã tải: ${file.name}`);
+    };
+    img.onerror = () => toast('❌ Không đọc được ảnh');
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function applySourceImage(showMsg){
+  if (!sourceImage) return;
+
+  const img = sourceImage;
+
+  const tmp = document.createElement('canvas');
+  tmp.width  = N;
+  tmp.height = N;
+  const tctx = tmp.getContext('2d');
+  tctx.imageSmoothingEnabled = true;
+  tctx.imageSmoothingQuality = 'high';
+
+  const side = Math.min(img.width, img.height);
+  const sx = (img.width  - side) / 2;
+  const sy = (img.height - side) / 2;
+
+  tctx.fillStyle = '#ffffff';
+  tctx.fillRect(0, 0, N, N);
+  tctx.drawImage(img, sx, sy, side, side, 0, 0, N, N);
+
+  const data = tctx.getImageData(0, 0, N, N).data;
+
+  for (let i = 0; i < N * N; i++){
+    const r = data[i * 4    ];
+    const g = data[i * 4 + 1];
+    const b = data[i * 4 + 2];
+    const a = data[i * 4 + 3];
+
+    if (a < 20){
+      pixels[i] = null;
+    } else {
+      pixels[i] = rgbToHex(r, g, b);
+    }
+  }
+
+  render();
+  if (showMsg) toast(`🎨 Đã chuyển thành lưới ${N}×${N}`);
+}
+
+/* =========================================================
+   NGUỒN ẢNH: chọn file, kéo thả, dán clipboard
+   ========================================================= */
+document.getElementById('uploadBtn').addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', e => {
+  const f = e.target.files[0];
+  if (f) loadImageFromFile(f);
+  fileInput.value = '';
+});
+
+['dragenter', 'dragover'].forEach(evt => {
+  wrap.addEventListener(evt, e => {
+    e.preventDefault();
+    e.stopPropagation();
+    wrap.classList.add('drag-over');
+  });
+});
+['dragleave', 'drop'].forEach(evt => {
+  wrap.addEventListener(evt, e => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (evt === 'dragleave' && wrap.contains(e.relatedTarget)) return;
+    wrap.classList.remove('drag-over');
+  });
+});
+wrap.addEventListener('drop', e => {
+  const f = e.dataTransfer.files[0];
+  if (f) loadImageFromFile(f);
+});
+
+document.addEventListener('paste', e => {
+  const items = e.clipboardData?.items;
+  if (!items) return;
+  for (const it of items){
+    if (it.type.startsWith('image/')){
+      const f = it.getAsFile();
+      if (f){ loadImageFromFile(f); e.preventDefault(); }
+      return;
+    }
+  }
+});
+
+/* =========================================================
+   CÔNG CỤ VẼ
+   ========================================================= */
+function drawLine(x0, y0, x1, y1, c){
+  let dx = Math.abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
+  let dy = -Math.abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
+  let err = dx + dy;
+  while (true){
+    setPx(x0, y0, c);
+    if (x0 === x1 && y0 === y1) break;
+    const e2 = 2 * err;
+    if (e2 >= dy){ err += dy; x0 += sx; }
+    if (e2 <= dx){ err += dx; y0 += sy; }
+  }
+}
+
+function drawRect(x0, y0, x1, y1, c){
+  const xa = Math.min(x0, x1), xb = Math.max(x0, x1);
+  const ya = Math.min(y0, y1), yb = Math.max(y0, y1);
+  for (let x = xa; x <= xb; x++){ setPx(x, ya, c); setPx(x, yb, c); }
+  for (let y = ya; y <= yb; y++){ setPx(xa, y, c); setPx(xb, y, c); }
+}
+
+function floodFill(x, y, newColor){
+  const target = pixels[y * N + x];
+  if (target === newColor) return;
+  const stack = [[x, y]];
+  while (stack.length){
+    const [cx, cy] = stack.pop();
+    if (cx < 0 || cy < 0 || cx >= N || cy >= N) continue;
+    const i = cy * N + cx;
+    if (pixels[i] !== target) continue;
+    pixels[i] = newColor;
+    stack.push([cx + 1, cy], [cx - 1, cy], [cx, cy + 1], [cx, cy - 1]);
+  }
+}
+
+/* ---------- Chuột / cảm ứng ---------- */
+function getCell(e){
+  const r = canvas.getBoundingClientRect();
+  const x = Math.floor((e.clientX - r.left) / r.width  * N);
+  const y = Math.floor((e.clientY - r.top ) / r.height * N);
+  if (x < 0 || y < 0 || x >= N || y >= N) return null;
+  return { x, y };
+}
+
+function applyTool(cell){
+  const { x, y } = cell;
+
+  if (tool === 'pen'){
+    drawLine(lastCell.x, lastCell.y, x, y, color);
+  }
+  else if (tool === 'eraser'){
+    drawLine(lastCell.x, lastCell.y, x, y, null);
+  }
+  else if (tool === 'bucket'){
+    floodFill(x, y, color);
+  }
+  else if (tool === 'picker'){
+    const c = pixels[y * N + x];
+    if (c) setColor(c);
+  }
+  else if (tool === 'line'){
+    pixels = snapshot.slice();
+    drawLine(startCell.x, startCell.y, x, y, color);
+  }
+  else if (tool === 'rect'){
+    pixels = snapshot.slice();
+    drawRect(startCell.x, startCell.y, x, y, color);
+  }
+  render();
+}
+
+canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+canvas.addEventListener('pointerdown', e => {
+  e.preventDefault();
+  const cell = getCell(e);
+  if (!cell) return;
+
+  if (e.button === 2){
+    pushHistory();
+    setPx(cell.x, cell.y, null);
+    render();
+    return;
+  }
+
+  drawing   = true;
+  startCell = cell;
+  lastCell  = cell;
+  snapshot  = pixels.slice();
+
+  if (tool !== 'picker') pushHistory();
+
+  canvas.setPointerCapture(e.pointerId);
+  applyTool(cell);
+
+  if (tool === 'bucket' || tool === 'picker') drawing = false;
+});
+
+canvas.addEventListener('pointermove', e => {
+  const cell = getCell(e);
+  if (!cell){
+    document.getElementById('status').textContent = '—';
+    return;
+  }
+  document.getElementById('status').textContent =
+    `Ô: ${cell.x}, ${cell.y}  |  Lưới: ${N}×${N}`;
+
+  if (!drawing) return;
+  if (tool === 'pen' || tool === 'eraser' || tool === 'line' || tool === 'rect'){
+    applyTool(cell);
+    lastCell = cell;
+  }
+});
+
+function endDraw(e){
+  if (!drawing) return;
+  drawing = false;
+  startCell = null;
+  lastCell  = null;
+  snapshot  = null;
+  if (e && e.pointerId !== undefined && canvas.hasPointerCapture(e.pointerId)){
+    canvas.releasePointerCapture(e.pointerId);
+  }
+}
+canvas.addEventListener('pointerup', endDraw);
+canvas.addEventListener('pointercancel', endDraw);
+canvas.addEventListener('pointerleave', e => { if (drawing) endDraw(e); });
+
+/* ---------- Undo / Redo ---------- */
+function undo(){
+  if (!history.length) return;
+  future.push(pixels.slice());
+  pixels = history.pop();
+  render();
+}
+function redo(){
+  if (!future.length) return;
+  history.push(pixels.slice());
+  pixels = future.pop();
+  render();
+}
+
+/* ---------- Xuất PNG ---------- */
+function downloadPNG(){
+  const SCALE = Math.max(4, Math.round(800 / N));  // ảnh xuất ~ 800px
+
+  const out = document.createElement('canvas');
+  out.width = out.height = N * SCALE;
+  const octx = out.getContext('2d');
+
+  octx.fillStyle = '#ffffff';
+  octx.fillRect(0, 0, out.width, out.height);
+
+  for (let y = 0; y < N; y++){
+    for (let x = 0; x < N; x++){
+      const c = pixels[y * N + x];
+      if (c){
+        octx.fillStyle = c;
+        octx.fillRect(x * SCALE, y * SCALE, SCALE, SCALE);
+      }
+    }
+  }
+
+  if (SCALE >= 3){
+    octx.strokeStyle = '#000000';
+    octx.lineWidth = 1;
+    octx.beginPath();
+    for (let i = 1; i < N; i++){
+      const p = i * SCALE + 0.5;
+      octx.moveTo(p, 0); octx.lineTo(p, out.height);
+      octx.moveTo(0, p); octx.lineTo(out.width, p);
+    }
+    octx.stroke();
+    octx.strokeRect(0.5, 0.5, out.width - 1, out.height - 1);
+  }
+
+  const a = document.createElement('a');
+  a.download = `pixel-art-mosaic-${N}x${N}.png`;
+  a.href = out.toDataURL('image/png');
+  a.click();
+}
+
+/* =========================================================
+   UI
+   ========================================================= */
+const PALETTE = [
+  '#000000','#3f3f3f','#7f7f7f','#bfbfbf','#ffffff','#f5e6c8',
+  '#7f1d1d','#ed1c24','#ff7f27','#fff200','#b5e61d','#22b14c',
+  '#00a2e8','#3f48cc','#a349a4','#ffaec9','#b97a57','#8b5a2b',
+  '#0b3d2e','#0e7490','#6d28d9','#db2777','#fbbf24','#84cc16'
+];
+
+const paletteEl = document.getElementById('palette');
+PALETTE.forEach(c => {
+  const d = document.createElement('div');
+  d.className = 'sw';
+  d.style.background = c;
+  d.dataset.color = c;
+  d.addEventListener('click', () => setColor(c));
+  paletteEl.appendChild(d);
+});
+
+function setColor(c){
+  color = c;
+  document.getElementById('colorPicker').value = c;
+  document.getElementById('colorHex').textContent = c.toLowerCase();
+  document.querySelectorAll('.sw').forEach(s => {
+    s.classList.toggle('sel', s.dataset.color.toLowerCase() === c.toLowerCase());
+  });
+}
+
+document.getElementById('colorPicker').addEventListener('input', e => setColor(e.target.value));
+
+document.getElementById('tools').addEventListener('click', e => {
+  const btn = e.target.closest('button[data-tool]');
+  if (!btn) return;
+  document.querySelectorAll('#tools button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  tool = btn.dataset.tool;
+  document.getElementById('status').textContent = 'Công cụ: ' + tool;
+});
+
+/* ====== Sự kiện bộ chọn kích thước ====== */
+
+// 1. Ô nhập số
+sizeInput.addEventListener('input', () => {
+  const v = parseInt(sizeInput.value, 10);
+  if (!isNaN(v) && v >= SIZE_MIN && v <= SIZE_MAX){
+    sizeRange.value = Math.min(v, RANGE_MAX);
+    setSize(v);
+  }
+});
+sizeInput.addEventListener('blur', () => {
+  sizeInput.value = N;  // khôi phục giá trị hợp lệ
+});
+
+// 2. Thanh trượt
+sizeRange.addEventListener('input', () => {
+  setSize(parseInt(sizeRange.value, 10));
+});
+
+// 3. Tạo nút preset
+PRESETS.forEach(n => {
+  const b = document.createElement('button');
+  b.textContent = n;
+  b.dataset.preset = n;
+  b.addEventListener('click', () => setSize(n));
+  presetsEl.appendChild(b);
+});
+
+function syncPresetButtons(){
+  presetsEl.querySelectorAll('button').forEach(b => {
+    b.classList.toggle('active', parseInt(b.dataset.preset, 10) === N);
+  });
+}
+
+/* ====== Các nút khác ====== */
+document.getElementById('gridToggle').addEventListener('change', e => {
+  showGrid = e.target.checked;
+  render();
+});
+
+document.getElementById('undoBtn').addEventListener('click', undo);
+document.getElementById('redoBtn').addEventListener('click', redo);
+document.getElementById('clearBtn').addEventListener('click', () => {
+  pushHistory();
+  pixels = new Array(N * N).fill(null);
+  sourceImage = null;
+  render();
+  toast('🗑 Đã xoá');
+});
+document.getElementById('downloadBtn').addEventListener('click', downloadPNG);
+
+/* Phím tắt */
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;  // đang gõ vào input
+  const k = e.key.toLowerCase();
+  if ((e.ctrlKey || e.metaKey) && k === 'z'){
+    e.preventDefault();
+    e.shiftKey ? redo() : undo();
+    return;
+  }
+  if ((e.ctrlKey || e.metaKey) && k === 'y'){ e.preventDefault(); redo(); return; }
+
+  const map = { b:'pen', e:'eraser', g:'bucket', i:'picker', l:'line', r:'rect' };
+  if (map[k]){
+    const btn = document.querySelector(`#tools button[data-tool="${map[k]}"]`);
+    if (btn) btn.click();
+  }
+});
+
+/* ---------- Khởi động ---------- */
+setSize(32);
+setColor('#a47148');
+window.addEventListener('load', fitCanvas);
+setTimeout(fitCanvas, 60);
+</script>
+</body>
+</html>
